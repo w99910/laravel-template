@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+    database:
+        image: 'mongo'
+        container_name: ${APP_NAME}-database
+        restart: unless-stopped
+        command: [ '--auth' ]
+        volumes:
+            - database-volume:/data/mongo
+        #        ports:
+        #            - ${DB_PORT}:27017
+        networks:
+            - socialdash-network
+        deploy:
+            resources:
+                limits:
+                    memory: 1024M
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${DB_USERNAME}
+            - MONGO_INITDB_ROOT_PASSWORD=${DB_PASSWORD}
+        healthcheck:
+            test: echo 'db.stats().ok' | mongosh "mongodb://${DB_USERNAME}:${DB_PASSWORD}@localhost:27017/?authSource=admin" --quiet
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            start_period: 40s
+    redis:
+        image: 'redis:alpine'
+        container_name: ${APP_NAME}-redis-alpine
+        restart: unless-stopped
+        #        ports:
+        #            - ${REDIS_PORT}:6379
+        command: redis-server --requirepass ${REDIS_PASSWORD}
+        volumes:
+            - redis-volume:/data
+        networks:
+            - socialdash-network
+        healthcheck:
+            test: [ "CMD", "redis-cli", "ping | grep PONG" ]
+            interval: 1s
+            timeout: 3s
+            retries: 5
+    app:
+        container_name: ${APP_NAME}-app
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+            args:
+                - APP_ENV=${APP_ENV}
+                - APP_PORT=${APP_PORT}
+        ports:
+            - ${APP_PORT}:8000
+        restart: unless-stopped
+        environment:
+            - APP_ENV=${APP_ENV}
+            - ROOT=/var/www/html
+        #        volumes:
+        #            - ./:/var/www/html
+        networks:
+            - socialdash-network
+        depends_on:
+            database:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+volumes:
+    database-volume:
+    redis-volume:
+networks:
+    socialdash-network:
+        driver: bridge
