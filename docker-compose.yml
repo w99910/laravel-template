@@ -8,10 +8,10 @@ services:
         command: [ '--auth' ]
         volumes:
             - database-volume:/data/mongo
-        #        ports:
-        #            - ${DB_PORT}:27017
+        ports:
+            - ${DB_PORT}:27017
         networks:
-            - socialdash-network
+            - cms-network
         deploy:
             resources:
                 limits:
@@ -29,13 +29,13 @@ services:
         image: 'redis:alpine'
         container_name: ${APP_NAME}-redis-alpine
         restart: unless-stopped
-        #        ports:
-        #            - ${REDIS_PORT}:6379
+        ports:
+            - ${REDIS_PORT}:6379
         command: redis-server --requirepass ${REDIS_PASSWORD}
         volumes:
             - redis-volume:/data
         networks:
-            - socialdash-network
+            - cms-network
         healthcheck:
             test: [ "CMD", "redis-cli", "ping | grep PONG" ]
             interval: 1s
@@ -55,10 +55,8 @@ services:
         environment:
             - APP_ENV=${APP_ENV}
             - ROOT=/var/www/html
-        #        volumes:
-        #            - ./:/var/www/html
         networks:
-            - socialdash-network
+            - cms-network
         depends_on:
             database:
                 condition: service_healthy
@@ -68,5 +66,5 @@ volumes:
     database-volume:
     redis-volume:
 networks:
-    socialdash-network:
+    cms-network:
         driver: bridge
