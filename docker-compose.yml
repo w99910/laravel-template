@@ -47,6 +47,7 @@ services:
             -   ./:/var/www/html
         ports:
             - ${APP_PORT}:8000
+            - 5173:5173
         restart: unless-stopped
         environment:
             - APP_ENV=${APP_ENV}
