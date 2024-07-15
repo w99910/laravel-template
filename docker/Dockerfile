@@ -48,12 +48,6 @@ RUN apt-get update; \
   libsodium-dev \
   gnupg2
 
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-      && sh -c 'echo "deb https://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
-      && apt-get update \
-      && apt-get install -y google-chrome-stable \
-      && ln -s /usr/bin/google-chrome-stable /usr/bin/chrome
-
 RUN apt-get -y autoremove \
       && apt-get clean \
       && docker-php-source delete \
@@ -88,12 +82,8 @@ RUN chown -R www-data:www-data storage && \
 RUN groupadd --force -g 1000 ${USER} && \
     useradd -ms /bin/bash --no-user-group --no-log-init -g www-data -u 1000 ${USER}
 
-RUN chown ${USER} /usr/bin/chrome
-
 RUN mkdir -p /var/log/supervisor /var/{log,run} && touch /var/log/supervisor/supervisord.log /var/run/supervisord.pid \
-  && chown ${USER} /var/log/supervisor/supervisord.log \
-  && chown -R ${USER}:${USER} ${ROOT} /var/{log,run} \
-  && chmod -R ug+rwx ${ROOT} /var/{log,run}
+  && chown ${USER} /var/log/supervisor/supervisord.log /var/run/supervisord.pid
 
 RUN test -f /var/log/supervisor/supervisord.log || exit
 
