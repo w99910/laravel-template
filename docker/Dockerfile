@@ -3,29 +3,6 @@ ARG COMPOSER_VERSION=latest
 ARG NODE_VERSION=20-alpine
 ARG TZ=UTC
 
-FROM node:${NODE_VERSION} AS build
-
-ENV ROOT=/var/www/html
-
-WORKDIR ${ROOT}
-
-SHELL ["/bin/bash", "-eou", "pipefail", "-c"]
-
-RUN npm config set update-notifier false && npm set progress=false
-
-COPY package*.json ./
-
-RUN if [ -f $ROOT/package-lock.json ]; \
-  then \
-    npm ci --loglevel=error --no-audit; \
-  else \
-    npm install --loglevel=error --no-audit; \
-  fi
-
-COPY . .
-
-RUN npm run build
-
 FROM composer:${COMPOSER_VERSION} AS vendor
 
 FROM php:${PHP_VERSION}-cli-bookworm AS base
@@ -97,14 +74,31 @@ RUN chown -R ${USER}:www-data . \
     && chgrp -R www-data bootstrap/cache storage \
     && chmod -R ug+rwx storage bootstrap/cache
 
+
+######### Install NPM #################
 USER ${USER}
 
+WORKDIR /home/${USER}
+
+ENV NVM_DIR /home/${USER}/.nvm
+
+ENV NVM_SH $NVM_DIR/nvm.sh
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+
+RUN export NVM_DIR=$NVM_DIR && \. $NVM_SH \
+    && nvm install --lts
+#######################################
+
+WORKDIR ${ROOT}
 # COPY run script
 COPY --chown=${USER}:${USER} ./docker/run.sh /usr/bin/run
 
 RUN test -f /usr/bin/run || exit && chmod +x /usr/bin/run
 
 COPY --chown=${USER}:${USER} docker/conf/ /etc/supervisor/conf.d/
+
+SHELL ["/bin/bash", "-c"]
 
 ENTRYPOINT ["run"]
 
