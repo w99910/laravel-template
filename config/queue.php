@@ -72,6 +72,14 @@ return [
             'after_commit' => false,
         ],
 
+        'redis-long-running' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+            'queue' => 'default-long',
+            'retry_after' => 1200, // Run for max 20 minutes
+            'block_for' => null,
+        ],
+
     ],
 
     /*
