@@ -22,6 +22,13 @@ export default defineConfig({
             },
         }),
     ],
+      server: {
+        host: '0.0.0.0', // Bind to all interfaces
+        hmr: {
+            // Optional: For Hot Module Replacement
+            host: 'localhost',
+        },
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './resources/js'),
