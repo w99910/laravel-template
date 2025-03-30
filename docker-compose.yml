@@ -1,0 +1,77 @@
+services:
+    database:
+        image: 'mongo'
+        container_name: ${APP_NAME}-database
+        restart: unless-stopped
+        command: [ '--auth' ]
+        volumes:
+            - database-volume:/data/db
+            - ./docker/create-indexes.js.template:/docker-entrypoint-initdb.d/create-indexes.js.template:ro
+            - ./docker/mongo-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+            # - ./docker/mongo-entrypoint.sh:/docker-entrypoint-initdb.d/db-entrypoint.sh
+        networks:
+            - helpinghands-network
+        deploy:
+            resources:
+                limits:
+                    memory: 2048M
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${DB_ROOT_USERNAME}
+            - MONGO_INITDB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+            - DB_USERNAME=${DB_USERNAME}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - DB_DATABASE=${DB_DATABASE}
+        healthcheck:
+            test: echo 'db.stats().ok' | mongosh "mongodb://${DB_ROOT_USERNAME}:${DB_ROOT_PASSWORD}@localhost:27017/?authSource=admin" --quiet
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            start_period: 40s
+    redis:
+        image: 'redis:alpine'
+        container_name: ${APP_NAME}-redis-alpine
+        restart: unless-stopped
+        command: redis-server --requirepass ${REDIS_PASSWORD}
+        volumes:
+            - redis-volume:/data
+        networks:
+            - helpinghands-network
+        healthcheck:
+            test: [ "CMD", "redis-cli", "ping | grep PONG" ]
+            interval: 1s
+            timeout: 3s
+            retries: 5
+    app:
+        container_name: ${APP_NAME}-app
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+            args:
+                - APP_ENV=${APP_ENV}
+                - APP_PORT=${APP_PORT}
+        volumes:
+            - ./:/var/www/html
+        ports:
+            - ${APP_PORT}:8000
+            - 5173:5173
+        restart: unless-stopped
+        environment:
+            - APP_ENV=${APP_ENV}
+            - ROOT=/var/www/html
+        networks:
+            - helpinghands-network
+            - facebook-scrapper-network
+        depends_on:
+            database:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+volumes:
+    database-volume:
+    redis-volume:
+networks:
+    helpinghands-network:
+        driver: bridge
+    facebook-scrapper-network:
+        external: true
+        name: fb-scrapper_facebook-scrapper-network

@@ -1,0 +1,12 @@
+// db = db.getSiblingDB('socialdash'); // replace with your database name
+
+// db.facebook_posts.createIndex({platform_id: 1});
+// db.facebook_posts.createIndex({created_at: 1});
+
+db = db.getSiblingDB('${DB_DATABASE}');
+
+db.createUser({
+  user: '${DB_USERNAME}',
+  pwd: '${DB_PASSWORD}',
+  roles: [{ role: 'dbOwner', db: '${DB_DATABASE}' }]
+});
